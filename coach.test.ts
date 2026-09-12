@@ -3,7 +3,7 @@ import type {
   GameReviewReport,
   MoveClassification,
   ReviewedMove,
-} from "../chess-engine/game_reviewer.ts";
+} from "./engine_review_types.ts";
 
 type AiAskResult = { ok: true; text: string } | { ok: false; error: string };
 const aiAskMock = vi.fn(

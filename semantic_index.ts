@@ -5,25 +5,27 @@
 // thoại xác nhận + thông báo tiến độ từng ván) — KHÔNG tự động chạy khi lưu
 // trang, cùng lý do ai/tagging.ts đã nêu (autosave debounce 1 giây, chạy tự
 // động sẽ tốn kém/gián đoạn), càng đúng hơn ở đây vì lần chạy đầu còn phải
-// tải cả model AI (xem client/data/chess_embedding_store.ts's module
-// comment về kích thước).
+// tải cả model AI (xem plugs/chess-db/embedding_store.ts's module comment
+// về kích thước).
 import {
-  chessEmbedding,
   editor,
   index,
   markdown,
   space,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
-import { extractFrontMatter } from "../index/frontmatter.ts";
-import type { ChessGameFields, ChessGameObject } from "../chess/index.ts";
+import type {
+  ChessGameFields,
+  ChessGameObject,
+} from "./chess_game_types.ts";
+import { computeForGame, extractFrontMatter } from "./external_syscalls.ts";
 
 /** Đọc `chessSummary` (Giai đoạn C) trực tiếp từ trang — chấp nhận được ở đây (lệnh chạy theo lô, không phải đường hỏi-đáp nóng mà Phase 2 đã tối ưu tránh việc này). */
 async function readSummary(page: string): Promise<string> {
   try {
     const text = await space.readPage(page);
     const tree = await markdown.parseMarkdown(text);
-    const frontmatter = extractFrontMatter(tree);
+    const frontmatter = await extractFrontMatter(tree);
     return typeof frontmatter.chessSummary === "string"
       ? frontmatter.chessSummary
       : "";
@@ -80,7 +82,7 @@ export async function commandComputeEmbeddings() {
     try {
       const summary = await readSummary(g.page);
       const text = buildEmbeddingText(g, summary);
-      await chessEmbedding.computeForGame(g.ref, g.page, text);
+      await computeForGame(g.ref, g.page, text);
       done++;
       await editor.flashNotification(
         `Đang tính embedding: ${done + failed}/${games.length} ván...`,

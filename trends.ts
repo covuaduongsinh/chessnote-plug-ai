@@ -15,15 +15,12 @@
 // cache cũ của đúng trang đó — không cần tự cài cơ chế phát hiện "PGN đã đổi".
 import { editor, index, space } from "@silverbulletmd/silverbullet/syscalls";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import {
-  isEngineNotInstalledError,
-  reviewGame,
-} from "../chess-engine/plug_api.ts";
+import { isEngineNotInstalledError, reviewGame } from "./external_syscalls.ts";
 import type {
   GameReviewReport,
   MoveClassification,
-} from "../chess-engine/game_reviewer.ts";
-import type { ChessGameFields, ChessGameObject } from "../chess/index.ts";
+} from "./engine_review_types.ts";
+import type { ChessGameFields, ChessGameObject } from "./chess_game_types.ts";
 import { aiAsk } from "./bridge.ts";
 import {
   ANTI_HALLUCINATION_RULE,

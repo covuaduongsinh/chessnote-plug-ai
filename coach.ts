@@ -13,7 +13,7 @@ import type {
   GameReviewReport,
   MoveClassification,
   ReviewedMove,
-} from "../chess-engine/game_reviewer.ts";
+} from "./engine_review_types.ts";
 import { aiAsk } from "./bridge.ts";
 
 export interface ExplainMoveInput extends ReviewedMove {

@@ -3,16 +3,10 @@
 // đích là chứng minh sức mạnh SQL thật (lọc theo người chơi/ngày + GROUP BY)
 // mà Object Index (full-scan trong bộ nhớ) không làm được, chạy tức thời vì
 // không cần engine Arasan.
-import {
-  chessSql,
-  editor,
-  space,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
+import { queryOpeningStats } from "./external_syscalls.ts";
 
-type OpeningStatRow = Awaited<
-  ReturnType<typeof chessSql.queryOpeningStats>
->[number];
+type OpeningStatRow = Awaited<ReturnType<typeof queryOpeningStats>>[number];
 
 const PLAYER_NAME_CONFIG_KEY = "chess.playerName";
 
@@ -62,7 +56,7 @@ bằng truy vấn SQL (\`GROUP BY\`) thật trên cơ sở dữ liệu SQLite nh
 ${tableRows || "| _(không có dữ liệu)_ | | | | |"}
 
 ---
-*Số liệu gộp trực tiếp từ SQLite (client/data/chess_sql_store.ts).*
+*Số liệu gộp trực tiếp từ SQLite (chess-db plug).*
 `;
 }
 
@@ -99,7 +93,7 @@ export async function commandOpeningStats() {
     }
   }
 
-  const rows = await chessSql.queryOpeningStats({ playerName, sinceDate });
+  const rows = await queryOpeningStats({ playerName, sinceDate });
   if (rows.length === 0) {
     await editor.flashNotification(
       `Không tìm thấy ván nào có "${playerName}" cầm quân` +

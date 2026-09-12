@@ -8,15 +8,13 @@
 // phím. Thay vào đó, tính năng này là một NÚT BẤM trong pgnWidget ("🏷️ AI Gợi ý
 // tag"), đúng khuôn "AI Giải thích"/"AI Bình luận ván" đã có — người dùng chủ động
 // bấm khi muốn, không có lượt gọi AI nào xảy ra ngoài ý muốn.
-import {
-  chessSql,
-  markdown,
-  space,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { markdown, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { YamlPatch } from "../../plug-api/lib/yaml.ts";
-import { extractFrontMatter } from "../index/frontmatter.ts";
-import { extractChessGames } from "../chess/plug_api.ts";
+import {
+  extractChessGames,
+  extractFrontMatter,
+  upsertAiAnnotation,
+} from "./external_syscalls.ts";
 import { aiAsk } from "./bridge.ts";
 
 export interface TagSuggestionInput {
@@ -115,7 +113,7 @@ export async function applyTagSuggestion(
   try {
     const text = await space.readPage(pageName);
     const tree = await markdown.parseMarkdown(text);
-    const frontmatter = extractFrontMatter(tree);
+    const frontmatter = await extractFrontMatter(tree);
     const existingTags = frontmatter.tags || [];
     const existingLower = new Set(existingTags.map((t) => t.toLowerCase()));
     const mergedTags = [...existingTags];
@@ -135,7 +133,7 @@ export async function applyTagSuggestion(
 
     const games = await extractChessGames(pageName, tree);
     for (const g of games) {
-      await chessSql.upsertAiAnnotation({
+      await upsertAiAnnotation({
         ref: g.ref,
         page: pageName,
         summary,

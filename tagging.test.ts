@@ -24,6 +24,7 @@ const patchFrontmatterMock = vi.fn(
 const readPageMock = vi.fn(async (_page: string) => "# Page\n");
 const writePageMock = vi.fn(async (_page: string, _text: string) => ({}));
 const upsertAiAnnotationMock = vi.fn(async (_annotation: unknown) => {});
+const extractFrontMatterMock = vi.fn(async () => ({ tags: [] as string[] }));
 vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
   markdown: { parseMarkdown: (text: string) => ({ type: "Document", text }) },
   space: {
@@ -34,19 +35,13 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
     invokeFunction: (name: string, ...args: unknown[]) =>
       patchFrontmatterMock(args[0] as string, args[1]),
   },
-  chessSql: {
-    upsertAiAnnotation: (annotation: unknown) =>
-      upsertAiAnnotationMock(annotation),
-  },
   index: {},
 }));
-vi.mock("../index/frontmatter.ts", () => ({
-  extractFrontMatter: vi.fn(() => ({ tags: [] })),
-}));
-// extractChessGames now crosses into chess-core via a syscall (chess/plug_api.ts)
-// instead of a direct import — mock that boundary with the real,
+// extractChessGames/extractFrontMatter/upsertAiAnnotation now cross into
+// chess-core/index/chess-db via syscalls (external_syscalls.ts) instead of
+// direct imports — mock that boundary. extractChessGames uses the real,
 // syscall-free implementation (pure chess.js/tree-walking logic).
-vi.mock("../chess/plug_api.ts", async () => {
+vi.mock("./external_syscalls.ts", async () => {
   const chessIndex = await import("../chess/index.ts");
   return {
     extractChessGames: (pageName: string, tree: unknown) =>
@@ -56,6 +51,9 @@ vi.mock("../chess/plug_api.ts", async () => {
           tree as Parameters<typeof chessIndex.extractChessGames>[1],
         ),
       ),
+    extractFrontMatter: () => extractFrontMatterMock(),
+    upsertAiAnnotation: (annotation: unknown) =>
+      upsertAiAnnotationMock(annotation),
   };
 });
 // extractChessGames() (called by applyTagSuggestion) parses the page tree
@@ -72,7 +70,6 @@ const {
   suggestTags,
   applyTagSuggestion,
 } = await import("./tagging.ts");
-const { extractFrontMatter } = await import("../index/frontmatter.ts");
 
 function input(
   overrides: Partial<Parameters<typeof buildTagSuggestionPrompt>[0]> = {},
@@ -169,7 +166,7 @@ describe("suggestTags — thin pass-through with strict parsing", () => {
 
 describe("applyTagSuggestion", () => {
   test("merges new tags with existing ones (case-insensitive de-dupe) and sets chessSummary", async () => {
-    vi.mocked(extractFrontMatter).mockReturnValueOnce({
+    extractFrontMatterMock.mockResolvedValueOnce({
       tags: ["Sicilian", "game"],
     });
     patchFrontmatterMock.mockClear();
@@ -196,7 +193,7 @@ describe("applyTagSuggestion", () => {
   });
 
   test("never drops an existing tag the suggestion didn't mention", async () => {
-    vi.mocked(extractFrontMatter).mockReturnValueOnce({
+    extractFrontMatterMock.mockResolvedValueOnce({
       tags: ["personal-note", "review-later"],
     });
     patchFrontmatterMock.mockClear();

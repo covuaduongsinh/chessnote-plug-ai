@@ -19,33 +19,32 @@
 // ngay khi câu hỏi tự nhiên chứa 1 từ không khớp field nào ("tôi", "tại sao",
 // "hay"...). extractKeywords() (plugs/chess/ai/text_normalize.ts) đã lọc hư
 // từ tiếng Việt trước khi đưa vào FTS5 để tránh đúng vấn đề đó.
-import {
-  chessEmbedding,
-  chessSql,
-  editor,
-  space,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import { aiAsk } from "./bridge.ts";
 import { ANTI_HALLUCINATION_RULE } from "./coach.ts";
-import { extractKeywords } from "../chess/plug_api.ts";
+import {
+  extractKeywords,
+  hasAnyEmbeddings,
+  search as embeddingSearch,
+  searchGames,
+} from "./external_syscalls.ts";
 
 const MAX_CONTEXT_GAMES = 15;
 
-type SearchGameRow = Awaited<ReturnType<typeof chessSql.searchGames>>[number];
+type SearchGameRow = Awaited<ReturnType<typeof searchGames>>[number];
 
 async function retrieveMatches(
   question: string,
 ): Promise<{ matches: SearchGameRow[]; method: "semantic" | "fts5" }> {
-  if (await chessEmbedding.hasAnyEmbeddings()) {
-    const matches = await chessEmbedding.search({
+  if (await hasAnyEmbeddings()) {
+    const matches = await embeddingSearch({
       queryText: question,
       limit: MAX_CONTEXT_GAMES,
     });
     return { matches, method: "semantic" };
   }
   const keywords = await extractKeywords(question);
-  const matches = await chessSql.searchGames({
+  const matches = await searchGames({
     keywords,
     limit: MAX_CONTEXT_GAMES,
   });

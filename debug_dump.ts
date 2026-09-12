@@ -4,9 +4,10 @@
 // opening/variation), Phase 5b (ai_annotations/ai_annotation_tags), và Phase
 // 5 (game_embeddings) ghi vào SQLite — không có UI nào khác hiển thị các
 // bảng này. Cách khác (không cần lệnh này) là mở DevTools console và gọi
-// trực tiếp `client.clientSystem.chessSqlStore.debugDump()` — lệnh này chỉ
+// trực tiếp syscall `chessSql.debugDump()` (chess-db plug) — lệnh này chỉ
 // là bản thân thiện hơn, xuất luôn ra 1 trang ghi chú đọc được.
-import { chessSql, editor, space } from "@silverbulletmd/silverbullet/syscalls";
+import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
+import { debugDump as chessSqlDebugDump } from "./external_syscalls.ts";
 
 /** Thoát ký tự `|` và xuống dòng để không phá bảng markdown — dữ liệu thật (PGN comment, AI summary...) có thể chứa cả hai. */
 export function escapeTableCell(value: string | number | null): string {
@@ -26,7 +27,7 @@ function formatDateForPageName(d: Date): string {
   );
 }
 
-type DebugDump = Awaited<ReturnType<typeof chessSql.debugDump>>;
+type DebugDump = Awaited<ReturnType<typeof chessSqlDebugDump>>;
 
 /** Thuần — dựng toàn bộ báo cáo markdown từ 1 DebugDump, tách khỏi phần gọi syscall để test được không cần WASM. */
 export function renderDebugDumpMarkdown(dump: DebugDump): string {
@@ -114,7 +115,7 @@ ${dump.embeddings.length ? embeddingsTable : '_(trống — chưa chạy lệnh 
 
 /** Command "Chess: Kiểm tra dữ liệu SQLite (debug)". */
 export async function commandDebugDumpSql() {
-  const dump = await chessSql.debugDump();
+  const dump = await chessSqlDebugDump();
   const reportName = `Chess/Debug SQL/${formatDateForPageName(new Date())}`;
   await space.writePage(reportName, renderDebugDumpMarkdown(dump));
   await editor.navigate(reportName);
