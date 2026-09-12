@@ -1,0 +1,145 @@
+name: chess-ai
+requiredPermissions:
+  - fetch
+functions:
+  chessAiInit:
+    path: ./bridge.ts:initAiConfig
+    events:
+      - editor:init
+  chessAiStatus:
+    path: ./bridge.ts:aiStatus
+    syscall:
+      name: chess.ai.status
+      description: >-
+        Status of the personal AI subscription-bridge (ai-sidecar/): whether
+        the Claude Code CLI is logged in. Three-state: connected/unknown/stale
+        — a timeout or sidecar-not-running is never reported as "logged out".
+      returns:
+        - { type: object }
+  chessAiAuthStart:
+    path: ./bridge.ts:aiAuthStart
+    syscall:
+      name: chess.ai.authStart
+      description: >-
+        Starts a Claude Code CLI login flow via the sidecar and returns the
+        login URL to open on the user's own machine.
+      returns:
+        - { type: object }
+  chessAiAuthCode:
+    path: ./bridge.ts:aiAuthCode
+    syscall:
+      name: chess.ai.authCode
+      description: Submits the pasted login code to the pending CLI login session.
+      parameters:
+        - { name: code, type: string }
+      returns:
+        - { type: object }
+  chessAiAuthLogout:
+    path: ./bridge.ts:aiAuthLogout
+    syscall:
+      name: chess.ai.authLogout
+      description: Logs the Claude Code CLI out via the sidecar.
+      returns:
+        - { type: object }
+  chessAiAuthCancel:
+    path: ./bridge.ts:aiAuthCancel
+    syscall:
+      name: chess.ai.authCancel
+      description: Cancels a pending CLI login session.
+      returns:
+        - { type: object }
+  chessAiAsk:
+    path: ./bridge.ts:aiAsk
+    syscall:
+      name: chess.ai.ask
+      description: >-
+        Plain-text-only AI generation (no tool calls) via the personal
+        subscription-bridge or a configured API key, per "chess.ai.mode".
+      parameters:
+        - { name: prompt, type: string }
+      returns:
+        - { type: object }
+  chessAiLoginCommand:
+    path: ./bridge.ts:commandAiLogin
+    command:
+      name: "Chess: Đăng nhập AI"
+  chessAiLogoutCommand:
+    path: ./bridge.ts:commandAiLogout
+    command:
+      name: "Chess: Đăng xuất AI"
+  chessAiExplainMove:
+    path: ./coach.ts:explainMove
+    syscall:
+      name: chess.ai.explainMove
+      description: >-
+        Giải thích một nước đi bằng AI, chỉ dựa trên số liệu engine thật đã tính
+        sẵn (classification/cpl/bestMoveSan/eval trước-sau) để chống hallucination.
+      parameters:
+        - { name: input, type: object }
+      returns:
+        - { type: object }
+  chessAiAnnotateGame:
+    path: ./coach.ts:annotateGame
+    syscall:
+      name: chess.ai.annotateGame
+      description: >-
+        Bình luận toàn ván bằng AI (1 lần gọi duy nhất), dựa trên độ chính xác và
+        danh sách bước ngoặt (mistake/blunder/brilliant/great) đã cắt gọn từ
+        chess.reviewGame — không dump toàn bộ nước đi để tránh phình chi phí.
+      parameters:
+        - { name: report, type: object }
+        - { name: headers, type: object }
+      returns:
+        - { type: object }
+  chessAiStatusCommand:
+    path: ./bridge.ts:commandAiStatus
+    command:
+      name: "Chess: Trạng thái AI"
+  chessAnalyzeTrendsCommand:
+    path: ./trends.ts:commandAnalyzeTrends
+    command:
+      name: "Chess: Phân tích xu hướng"
+  chessOpeningStatsCommand:
+    path: ./opening_stats.ts:commandOpeningStats
+    command:
+      name: "Chess: Thống kê khai cuộc"
+  chessComputeEmbeddingsCommand:
+    path: ./semantic_index.ts:commandComputeEmbeddings
+    command:
+      name: "Chess: Tính embedding ngữ nghĩa"
+  chessDebugDumpSqlCommand:
+    path: ./debug_dump.ts:commandDebugDumpSql
+    command:
+      name: "Chess: Kiểm tra dữ liệu SQLite (debug)"
+  chessAiSuggestTags:
+    path: ./tagging.ts:suggestTags
+    syscall:
+      name: chess.ai.suggestTags
+      description: >-
+        Gợi ý tối đa 4 tag + 1 câu tóm tắt cho một ván, dựa trên metadata và vài
+        nước mở đầu (không toàn bộ PGN). Trả lời sai định dạng bị coi là lỗi,
+        không tự đoán mò.
+      parameters:
+        - { name: input, type: object }
+      returns:
+        - { type: object }
+  chessAskAiCommand:
+    path: ./qa.ts:commandAskAi
+    command:
+      name: "Chess: Hỏi AI"
+  chessApplyTagSuggestion:
+    path: ./tagging.ts:applyTagSuggestion
+    syscall:
+      name: chess.applyTagSuggestion
+      description: >-
+        Ghi tag gợi ý (gộp, không xoá tag cũ) + tóm tắt (frontmatter `chessSummary`)
+        vào ghi chú, đồng thời lưu bản có cấu trúc (kèm model đã dùng) vào
+        SQLite qua chessSql.upsertAiAnnotation. Chỉ gọi khi người dùng đã bấm
+        "Áp dụng" trên gợi ý AI.
+      parameters:
+        - { name: pageName, type: string }
+        - { name: tags, type: array }
+        - { name: summary, type: string }
+        - { name: modelVersion, type: string }
+      returns:
+        - { type: object }
